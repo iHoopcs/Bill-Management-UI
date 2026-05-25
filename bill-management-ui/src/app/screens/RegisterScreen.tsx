@@ -9,23 +9,62 @@ import {
   View,
 } from "react-native";
 import { router } from "expo-router";
+import { authService } from "../../services/authService";
+
+// Only letters, hyphens, and apostrophes — covers names like O'Brien, Mary-Jane
+const NAME_REGEX = /^[a-zA-Z'-]{2,}$/;
+// Standard email format
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Min 8 chars, at least one uppercase letter, at least one special character
+const PASSWORD_REGEX =
+  /^(?=.*[A-Z])(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]).{8,}$/;
 
 export default function RegisterScreen() {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     setError("");
 
-    if (!name || !email || !password || !confirmPassword) {
+    if (!firstName || !lastName || !email || !password || !confirmPassword) {
       setError("Please fill in all fields.");
+      return;
+    }
+
+    if (!NAME_REGEX.test(firstName)) {
+      setError(
+        "First name must be at least 2 letters. Only letters, hyphens, and apostrophes allowed.",
+      );
+      return;
+    }
+
+    if (!NAME_REGEX.test(lastName)) {
+      setError(
+        "Last name must be at least 2 letters. Only letters, hyphens, and apostrophes allowed.",
+      );
+      return;
+    }
+
+    if (!EMAIL_REGEX.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!PASSWORD_REGEX.test(password)) {
+      setError(
+        "Password must be at least 8 characters and include one uppercase letter and one special character.",
+      );
       return;
     }
 
@@ -34,13 +73,11 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
+    try {
+      await authService.register(firstName, lastName, email, password);
+    } catch (error: any) {
+      setError("Failed to register: " + error.message);
     }
-
-    // TODO: replace with real registration call
-    router.replace("/screens/DashboardScreen");
   };
 
   return (
@@ -53,13 +90,28 @@ export default function RegisterScreen() {
         <Text style={styles.subtitle}>Create your account</Text>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Full Name</Text>
+          <Text style={styles.label}>First Name</Text>
           <TextInput
             style={styles.input}
-            placeholder="John Smith"
+            placeholder="John "
             placeholderTextColor="#999"
-            value={name}
-            onChangeText={setName}
+            value={firstName}
+            onChangeText={setFirstName}
+            autoCapitalize="words"
+            returnKeyType="next"
+            onSubmitEditing={() => lastNameRef.current?.focus()}
+          />
+        </View>
+
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Last Name</Text>
+          <TextInput
+            ref={lastNameRef}
+            style={styles.input}
+            placeholder="Doe"
+            placeholderTextColor="#999"
+            value={lastName}
+            onChangeText={setLastName}
             autoCapitalize="words"
             returnKeyType="next"
             onSubmitEditing={() => emailRef.current?.focus()}
@@ -84,32 +136,50 @@ export default function RegisterScreen() {
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password</Text>
-          <TextInput
-            ref={passwordRef}
-            style={styles.input}
-            placeholder="Min. 8 characters"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            returnKeyType="next"
-            onSubmitEditing={() => confirmPasswordRef.current?.focus()}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              ref={passwordRef}
+              style={styles.inputFlex}
+              placeholder="Min. 8 characters"
+              placeholderTextColor="#999"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              returnKeyType="next"
+              onSubmitEditing={() => confirmPasswordRef.current?.focus()}
+            />
+            <Pressable
+              onPress={() => setShowPassword((p) => !p)}
+              style={styles.eyeButton}
+            >
+              <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁️"}</Text>
+            </Pressable>
+          </View>
         </View>
 
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Confirm Password</Text>
-          <TextInput
-            ref={confirmPasswordRef}
-            style={styles.input}
-            placeholder="••••••••"
-            placeholderTextColor="#999"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-            returnKeyType="done"
-            onSubmitEditing={handleRegister}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              ref={confirmPasswordRef}
+              style={styles.inputFlex}
+              placeholder="••••••••"
+              placeholderTextColor="#999"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+              returnKeyType="done"
+              onSubmitEditing={handleRegister}
+            />
+            <Pressable
+              onPress={() => setShowConfirmPassword((p) => !p)}
+              style={styles.eyeButton}
+            >
+              <Text style={styles.eyeIcon}>
+                {showConfirmPassword ? "🙈" : "👁️"}
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -188,6 +258,29 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#111",
     backgroundColor: "#fafafa",
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    backgroundColor: "#fafafa",
+  },
+  inputFlex: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: "#111",
+  },
+  eyeButton: {
+    paddingHorizontal: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  eyeIcon: {
+    fontSize: 18,
   },
   error: {
     color: "#d9534f",

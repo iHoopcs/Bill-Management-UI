@@ -8,9 +8,11 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 
 export default function LoginScreen() {
+  const { registered } = useLocalSearchParams<{ registered?: string }>();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -44,6 +46,13 @@ export default function LoginScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>BillManager</Text>
         <Text style={styles.subtitle}>Sign in to your account</Text>
+
+        {/* Success banner shown after registration */}
+        {registered === "true" && (
+          <View style={styles.successBanner}>
+            <Text style={styles.successText}>Account created!</Text>
+          </View>
+        )}
 
         {/* Email input */}
         <View style={styles.inputGroup}>
@@ -161,6 +170,20 @@ const styles = StyleSheet.create({
     color: "#d9534f",
     fontSize: 13,
     marginBottom: 12,
+  },
+  successBanner: {
+    backgroundColor: "#e6f4ea",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#34a853",
+  },
+  successText: {
+    color: "#1e7e34",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
   },
   button: {
     backgroundColor: "#007bff",
