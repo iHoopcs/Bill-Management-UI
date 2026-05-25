@@ -76,7 +76,7 @@ export default function RegisterScreen() {
     try {
       await authService.register(firstName, lastName, email, password);
     } catch (error: any) {
-      setError("Failed to register: " + error.message);
+      setError(`Failed to register: ${error.message}`);
     }
   };
 
