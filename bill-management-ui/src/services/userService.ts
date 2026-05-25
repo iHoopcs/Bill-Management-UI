@@ -10,7 +10,6 @@ export const userService = {
    */
   getUser: async (): Promise<User> => {
     const response = await apiClient.get(`/api/users/me`);
-    console.log("getUser response:", response);
 
     handleStatus(response, 200, {
       401: "Session expired. Please log in again.",

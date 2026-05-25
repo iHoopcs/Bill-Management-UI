@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -58,6 +58,17 @@ export default function DashboardScreen() {
 
   const unpaidCount = bills.filter((b) => !b.isPaid).length;
 
+  // Computed once on mount — no need to recalculate on every render
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  }, []);
+
+  const fullName =
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "there";
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centeredContainer}>
@@ -99,8 +110,8 @@ export default function DashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Good morning,</Text>
-            <Text style={styles.userName}>{user?.firstName ?? "there"} 👋</Text>
+            <Text style={styles.greeting}>{greeting},</Text>
+            <Text style={styles.userName}>{fullName} 👋</Text>
           </View>
           <Pressable
             style={({ pressed }) => [

@@ -30,7 +30,6 @@ export const billService = {
     const userId = await getUserIdFromToken();
     if (!userId) throw new Error("User ID is required to retrieve bills.");
     const response = await apiClient.get(`/api/bills/all/${userId}/`);
-    console.log("getBillsForUser response:", response);
 
     handleStatus(response, 200, {
       401: "Session expired. Please log in again.",
@@ -83,6 +82,7 @@ export const billService = {
     if (Object.keys(billData).length === 0)
       throw new Error("At least one field must be provided to update.");
     const response = await apiClient.put(`/api/bills/${billId}`, billData);
+    console.log("updateBill response:", JSON.stringify(response, null, 2));
 
     handleStatus(response, 200, {
       400: "Invalid bill data. Please check the details and try again.",
@@ -96,7 +96,7 @@ export const billService = {
 
   /**
    * Deletes the specified bill.
-   * @param billId
+   * @param billId The ID of the bill to delete
    * @returns
    * @throws Error if billId is missing or if the deletion fails due to permissions or if the bill is not found
    */
