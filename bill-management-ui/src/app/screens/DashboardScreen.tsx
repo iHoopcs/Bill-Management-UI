@@ -12,9 +12,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 import { Bill } from "@/models/bill";
 import { User } from "@/models/user";
-import { authService } from "@/services/authService";
 import { billService } from "@/services/billService";
 import { userService } from "@/services/userService";
+import BottomNav from "@/app/_components/BottomNav";
+import BillCard from "../_components/BillCard";
 
 export default function DashboardScreen() {
   const [user, setUser] = useState<User | null>(null);
@@ -113,15 +114,7 @@ export default function DashboardScreen() {
             <Text style={styles.greeting}>{greeting},</Text>
             <Text style={styles.userName}>{fullName} 👋</Text>
           </View>
-          <Pressable
-            style={({ pressed }) => [
-              styles.logoutButton,
-              pressed && styles.pressed,
-            ]}
-            onPress={() => authService.logout()}
-          >
-            <Text style={styles.logoutText}>Log out</Text>
-          </Pressable>
+          <View />
         </View>
 
         {/* Summary card */}
@@ -139,31 +132,11 @@ export default function DashboardScreen() {
         {bills.length === 0 ? (
           <Text style={styles.emptyText}>No bills found.</Text>
         ) : (
-          bills.map((bill) => (
-            <View key={bill._id} style={styles.billCard}>
-              <View style={styles.billInfo}>
-                <Text style={styles.billName}>{bill.name}</Text>
-                <Text style={styles.billDue}>
-                  Due {new Date(bill.dueDate).toLocaleDateString()}
-                </Text>
-              </View>
-              <View style={styles.billRight}>
-                <Text style={styles.billAmount}>${bill.amount.toFixed(2)}</Text>
-                <View
-                  style={[
-                    styles.badge,
-                    bill.isPaid ? styles.badgePaid : styles.badgeDue,
-                  ]}
-                >
-                  <Text style={styles.badgeText}>
-                    {bill.isPaid ? "Paid" : "Due"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))
+          bills.map((bill) => <BillCard key={bill._id} bill={bill} />)
         )}
       </ScrollView>
+
+      <BottomNav />
     </SafeAreaView>
   );
 }
@@ -194,21 +167,6 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#111",
   },
-  logoutButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 14,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#ddd",
-    backgroundColor: "#fff",
-  },
-  logoutText: {
-    fontSize: 13,
-    color: "#555",
-  },
-  pressed: {
-    opacity: 0.7,
-  },
 
   // Summary card
   summaryCard: {
@@ -238,58 +196,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     marginTop: 4,
-  },
-
-  // Bill cards
-  billCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  billInfo: {
-    gap: 4,
-  },
-  billName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111",
-  },
-  billDue: {
-    fontSize: 12,
-    color: "#888",
-  },
-  billRight: {
-    alignItems: "flex-end",
-    gap: 6,
-  },
-  billAmount: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#111",
-  },
-  badge: {
-    paddingVertical: 2,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-  },
-  badgePaid: {
-    backgroundColor: "#e6f4ea",
-  },
-  badgeDue: {
-    backgroundColor: "#fff0f0",
-  },
-  badgeText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#444",
   },
 
   // Loading / error states
@@ -326,5 +232,8 @@ const styles = StyleSheet.create({
     color: "#888",
     textAlign: "center",
     marginTop: 12,
+  },
+  pressed: {
+    opacity: 0.7,
   },
 });
