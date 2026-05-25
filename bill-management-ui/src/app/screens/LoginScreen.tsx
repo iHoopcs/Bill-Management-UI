@@ -8,17 +8,21 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
+import { authService } from "../../services/authService";
 
 export default function LoginScreen() {
+  const { registered } = useLocalSearchParams<{ registered?: string }>();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   // Ref lets us move focus from email → password when user taps "Next" on keyboard
   const passwordRef = useRef<TextInput>(null);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError("");
 
     // Basic validation
@@ -27,11 +31,10 @@ export default function LoginScreen() {
       return;
     }
 
-    // TODO: replace with real auth call
-    if (email === "test@test.com" && password === "password") {
-      router.replace("/screens/DashboardScreen");
-    } else {
-      setError("Invalid email or password.");
+    try {
+      await authService.login(email, password);
+    } catch (error: any) {
+      setError(`Failed to login: ${error.message}`);
     }
   };
 
@@ -44,6 +47,13 @@ export default function LoginScreen() {
       <View style={styles.card}>
         <Text style={styles.title}>BillManager</Text>
         <Text style={styles.subtitle}>Sign in to your account</Text>
+
+        {/* Success banner shown after registration */}
+        {registered === "true" && (
+          <View style={styles.successBanner}>
+            <Text style={styles.successText}>Account created!</Text>
+          </View>
+        )}
 
         {/* Email input */}
         <View style={styles.inputGroup}>
@@ -64,17 +74,25 @@ export default function LoginScreen() {
         {/* Password input */}
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Password</Text>
-          <TextInput
-            ref={passwordRef}
-            style={styles.input}
-            placeholder="••••••••"
-            placeholderTextColor="#999"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry // hides characters
-            returnKeyType="done"
-            onSubmitEditing={handleLogin}
-          />
+          <View style={styles.inputRow}>
+            <TextInput
+              ref={passwordRef}
+              style={styles.inputFlex}
+              placeholder="••••••••"
+              placeholderTextColor="#999"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={!showPassword}
+              returnKeyType="done"
+              onSubmitEditing={handleLogin}
+            />
+            <Pressable
+              onPress={() => setShowPassword((p) => !p)}
+              style={styles.eyeButton}
+            >
+              <Text style={styles.eyeIcon}>{showPassword ? "🙈" : "👁️"}</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* Error message — only shown when error is set */}
@@ -157,10 +175,47 @@ const styles = StyleSheet.create({
     color: "#111",
     backgroundColor: "#fafafa",
   },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    backgroundColor: "#fafafa",
+  },
+  inputFlex: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    color: "#111",
+  },
+  eyeButton: {
+    paddingHorizontal: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  eyeIcon: {
+    fontSize: 18,
+  },
   error: {
     color: "#d9534f",
     fontSize: 13,
     marginBottom: 12,
+  },
+  successBanner: {
+    backgroundColor: "#e6f4ea",
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: "#34a853",
+  },
+  successText: {
+    color: "#1e7e34",
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "center",
   },
   button: {
     backgroundColor: "#007bff",
