@@ -1,20 +1,28 @@
-import { Text, StyleSheet } from "react-native";
+import { Text, StyleSheet, ScrollView } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BottomNav from "../_components/BottomNav";
 
 export default function CalendarScreen() {
   return (
-    <SafeAreaView style={styles.centeredContainer}>
-      <Text style={styles.emptyText}>Calendar view coming soon!</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.emptyText}>Calendar view coming soon!</Text>
+      </ScrollView>
+      <BottomNav />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  centeredContainer: {
+  safeArea: {
+    flex: 1,
+    backgroundColor: "#f0f2f5",
+  },
+  container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f0f2f5",
+    padding: 20,
   },
   emptyText: {
     fontSize: 14,
