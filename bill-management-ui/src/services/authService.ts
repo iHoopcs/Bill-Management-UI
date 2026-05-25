@@ -1,29 +1,17 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 
-import apiClient from "./apiClient";
-
-/**
- * Checks the response status and throws a user-friendly error for non-success codes.
- * @param response   - The axios response object
- * @param successCode - The HTTP status code that means success (e.g. 200, 201)
- * @param errorMap   - Map of status codes to error messages for known error cases
- */
-const handleStatus = (
-  response: any,
-  successCode: number,
-  errorMap: Record<number, string>,
-) => {
-  if (response.status === successCode) return;
-
-  const message =
-    errorMap[response.status] ??
-    `Unexpected error (status ${response.status}). Please try again.`;
-
-  throw new Error(message);
-};
+import apiClient from "../config/apiClient";
+import { handleStatus } from "@/utils/serviceUtils";
 
 export const authService = {
+  /**
+   * Attempts to log in with the provided email and password.
+   * @param email The user's email address
+   * @param password The user's password
+   * @returns A promise that resolves when the login is complete
+   * @throws Error if the email or password is missing, if the login details are invalid, or if a network/server error occurs
+   */
   login: async (email: string, password: string) => {
     if (!email || !password) throw new Error("Email and password are required");
 
@@ -52,6 +40,15 @@ export const authService = {
     }
   },
 
+  /**
+   * Attempts to register a new account with the provided details.
+   * @param firstName The user's first name
+   * @param lastName The user's last name
+   * @param email The user's email address
+   * @param password The user's password
+   * @returns A promise that resolves when the registration is complete
+   * @throws Error if any fields are missing, if the registration details are invalid, if an account with the email already exists, or if a network/server error occurs
+   */
   register: async (
     firstName: string,
     lastName: string,

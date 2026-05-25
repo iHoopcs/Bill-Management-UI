@@ -1,46 +1,113 @@
-import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
+import { useEffect, useState } from "react";
+import {
+  ActivityIndicator,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { router } from "expo-router";
 
-// --- Dummy data — replace with real API calls ---
-const DUMMY_USER = {
-  name: "Caleb",
-};
-
-const DUMMY_BILLS = [
-  {
-    id: "1",
-    name: "Electricity",
-    amount: 120.5,
-    dueDate: "Jun 1",
-    paid: false,
-  },
-  { id: "2", name: "Internet", amount: 59.99, dueDate: "Jun 3", paid: false },
-  { id: "3", name: "Rent", amount: 1200, dueDate: "Jun 5", paid: true },
-  { id: "4", name: "Netflix", amount: 15.99, dueDate: "Jun 8", paid: true },
-];
-
-const totalDue = DUMMY_BILLS.filter((b) => !b.paid).reduce(
-  (sum, b) => sum + b.amount,
-  0,
-);
+import { Bill } from "@/models/bill";
+import { User } from "@/models/user";
+import { authService } from "@/services/authService";
+import { billService } from "@/services/billService";
+import { userService } from "@/services/userService";
 
 export default function DashboardScreen() {
+  const [user, setUser] = useState<User | null>(null);
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchData = async () => {
+    try {
+      setError(null);
+      // Fetch user and bills in parallel — faster than sequential awaits
+      const [userData, billsData] = await Promise.all([
+        userService.getUser(),
+        billService.getBillsForUser(),
+      ]);
+      setUser(userData);
+      setBills(billsData);
+    } catch (err: any) {
+      setError(err.message ?? "Failed to load dashboard.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Runs once when the screen mounts
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  // Pull-to-refresh handler
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
+
+  const totalDue = bills
+    .filter((b) => !b.isPaid)
+    .reduce((sum, b) => sum + b.amount, 0);
+
+  const unpaidCount = bills.filter((b) => !b.isPaid).length;
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text style={styles.loadingText}>Loading your dashboard...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.centeredContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.retryButton,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => {
+            setLoading(true);
+            fetchData();
+          }}
+        >
+          <Text style={styles.retryText}>Try Again</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          // Pull-to-refresh — standard mobile UX pattern
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
             <Text style={styles.greeting}>Good morning,</Text>
-            <Text style={styles.userName}>{DUMMY_USER.name} 👋</Text>
+            <Text style={styles.userName}>{user?.firstName ?? "there"} 👋</Text>
           </View>
           <Pressable
             style={({ pressed }) => [
               styles.logoutButton,
               pressed && styles.pressed,
             ]}
-            onPress={() => router.replace("/screens/LoginScreen")}
+            onPress={() => authService.logout()}
           >
             <Text style={styles.logoutText}>Log out</Text>
           </Pressable>
@@ -51,34 +118,40 @@ export default function DashboardScreen() {
           <Text style={styles.summaryLabel}>Outstanding Balance</Text>
           <Text style={styles.summaryAmount}>${totalDue.toFixed(2)}</Text>
           <Text style={styles.summarySubtext}>
-            {DUMMY_BILLS.filter((b) => !b.paid).length} bill(s) due soon
+            {unpaidCount} bill{unpaidCount !== 1 ? "s" : ""} due soon
           </Text>
         </View>
 
         {/* Bills list */}
         <Text style={styles.sectionTitle}>Upcoming Bills</Text>
 
-        {DUMMY_BILLS.map((bill) => (
-          <View key={bill.id} style={styles.billCard}>
-            <View style={styles.billInfo}>
-              <Text style={styles.billName}>{bill.name}</Text>
-              <Text style={styles.billDue}>Due {bill.dueDate}</Text>
-            </View>
-            <View style={styles.billRight}>
-              <Text style={styles.billAmount}>${bill.amount.toFixed(2)}</Text>
-              <View
-                style={[
-                  styles.badge,
-                  bill.paid ? styles.badgePaid : styles.badgeDue,
-                ]}
-              >
-                <Text style={styles.badgeText}>
-                  {bill.paid ? "Paid" : "Due"}
+        {bills.length === 0 ? (
+          <Text style={styles.emptyText}>No bills found.</Text>
+        ) : (
+          bills.map((bill) => (
+            <View key={bill._id} style={styles.billCard}>
+              <View style={styles.billInfo}>
+                <Text style={styles.billName}>{bill.name}</Text>
+                <Text style={styles.billDue}>
+                  Due {new Date(bill.dueDate).toLocaleDateString()}
                 </Text>
               </View>
+              <View style={styles.billRight}>
+                <Text style={styles.billAmount}>${bill.amount.toFixed(2)}</Text>
+                <View
+                  style={[
+                    styles.badge,
+                    bill.isPaid ? styles.badgePaid : styles.badgeDue,
+                  ]}
+                >
+                  <Text style={styles.badgeText}>
+                    {bill.isPaid ? "Paid" : "Due"}
+                  </Text>
+                </View>
+              </View>
             </View>
-          </View>
-        ))}
+          ))
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -206,5 +279,41 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     color: "#444",
+  },
+
+  // Loading / error states
+  centeredContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f2f5",
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#888",
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#d9534f",
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+  retryButton: {
+    backgroundColor: "#007bff",
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: "#888",
+    textAlign: "center",
+    marginTop: 12,
   },
 });
