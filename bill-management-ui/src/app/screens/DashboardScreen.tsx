@@ -16,6 +16,7 @@ import { billService } from "@/services/billService";
 import { userService } from "@/services/userService";
 import BottomNav from "@/app/_components/BottomNav";
 import BillCard from "../_components/BillCard";
+import { MONTH_NAMES_FULL } from "@/utils/monthsOfYear";
 
 export default function DashboardScreen() {
   const [user, setUser] = useState<User | null>(null);
@@ -70,21 +71,7 @@ export default function DashboardScreen() {
 
   const currentMonthYear = useMemo(() => {
     const now = new Date();
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    return `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+    return `${MONTH_NAMES_FULL[now.getMonth()]} ${now.getFullYear()}`;
   }, []);
 
   // Helper function to check if a bill is past due

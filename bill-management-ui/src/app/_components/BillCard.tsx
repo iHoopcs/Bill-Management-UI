@@ -2,36 +2,7 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Bill } from "@/models/bill";
-
-const MONTH_NAMES = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
-];
-
-const MONTH_NAMES_FULL = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-];
+import { MONTH_NAMES_ABBR, MONTH_NAMES_FULL } from "@/utils/monthsOfYear";
 
 function getOrdinalSuffix(day: number): string {
   if (day > 3 && day < 21) return "th";
@@ -59,7 +30,7 @@ export function scheduleLabel(bill: Bill): string {
     bill.yearlyDueDay != null
   ) {
     const day = bill.yearlyDueDay;
-    return `${MONTH_NAMES[bill.yearlyDueMonth - 1]} ${day}${getOrdinalSuffix(day)} each year`;
+    return `${MONTH_NAMES_ABBR[bill.yearlyDueMonth - 1]} ${day}${getOrdinalSuffix(day)} each year`;
   }
   return "One-time bill";
 }
