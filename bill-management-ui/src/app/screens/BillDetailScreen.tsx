@@ -117,10 +117,26 @@ export default function BillDetailScreen() {
 
     setSaving(true);
     try {
+      // Determine paidDate logic:
+      // - If marking as paid now (wasn't paid before), set current date
+      // - If already paid and still paid, preserve existing paidDate
+      // - If unmarking as paid, set to null
+      let paidDateValue: string | null = null;
+      if (isPaid) {
+        if (bill?.isPaid && bill?.paidDate) {
+          // Was already paid, keep existing date
+          paidDateValue = bill.paidDate;
+        } else {
+          // Newly marking as paid
+          paidDateValue = new Date().toISOString();
+        }
+      }
+
       const payload: UpdateBillDto = {
         name: name.trim(),
         amount: parsedAmount,
         isPaid,
+        paidDate: paidDateValue,
         recurrence: recurrence ?? null,
         recurringDayOfMonth:
           recurrence === "monthly" ? parseInt(recurringDayOfMonth) : null,
@@ -290,6 +306,19 @@ export default function BillDetailScreen() {
             )}
           </View>
           <Divider />
+
+          {/* Paid Date (read-only) */}
+          {bill?.paidDate && (
+            <>
+              <View style={styles.fieldRow}>
+                <Text style={styles.fieldLabel}>Paid Date</Text>
+                <Text style={styles.fieldValue}>
+                  {new Date(bill.paidDate).toLocaleDateString()}
+                </Text>
+              </View>
+              <Divider />
+            </>
+          )}
 
           {/* Recurrence type */}
           <View style={styles.fieldRow}>

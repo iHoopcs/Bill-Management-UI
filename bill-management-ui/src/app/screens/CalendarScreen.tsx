@@ -196,6 +196,8 @@ export default function CalendarScreen() {
                 return <View key={item.key} style={styles.emptyCell} />;
               }
 
+              const currentYear = new Date().getFullYear();
+
               // Check if any bill is due on this specific day
               const billsOnThisDay = bills.filter((bill) => {
                 // Monthly bills - check if recurring day matches
@@ -219,8 +221,37 @@ export default function CalendarScreen() {
               });
 
               const hasBill = billsOnThisDay.length > 0;
+
+              // Check if all bills on this day are paid for THIS specific month/year
               const allPaid =
-                hasBill && billsOnThisDay.every((bill) => bill.isPaid);
+                hasBill &&
+                billsOnThisDay.every((bill) => {
+                  if (!bill.isPaid || !bill.paidDate) return false;
+
+                  const paidDate = new Date(bill.paidDate);
+                  const paidMonth = paidDate.getMonth();
+                  const paidYear = paidDate.getFullYear();
+
+                  // For monthly bills, check if paid in the selected month/year
+                  // (doesn't matter which day of the month it was paid)
+                  if (bill.recurrence === "monthly") {
+                    return (
+                      paidMonth === selectedMonthIndex &&
+                      paidYear === currentYear
+                    );
+                  }
+
+                  // For yearly bills, check if paid in the selected month/year
+                  // (doesn't matter which day it was paid)
+                  if (bill.recurrence === "yearly") {
+                    return (
+                      paidMonth === selectedMonthIndex &&
+                      paidYear === currentYear
+                    );
+                  }
+
+                  return false;
+                });
 
               return (
                 <CalendarNumber
