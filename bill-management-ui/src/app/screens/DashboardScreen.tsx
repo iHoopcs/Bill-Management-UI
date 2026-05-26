@@ -87,28 +87,6 @@ export default function DashboardScreen() {
     return `${monthNames[now.getMonth()]} ${now.getFullYear()}`;
   }, []);
 
-  const nextMonthYear = useMemo(() => {
-    const now = new Date();
-    const monthNames = [
-      "January",
-      "February",
-      "March",
-      "April",
-      "May",
-      "June",
-      "July",
-      "August",
-      "September",
-      "October",
-      "November",
-      "December",
-    ];
-    const nextMonth = now.getMonth() === 11 ? 0 : now.getMonth() + 1;
-    const nextYear =
-      now.getMonth() === 11 ? now.getFullYear() + 1 : now.getFullYear();
-    return `${monthNames[nextMonth]} ${nextYear}`;
-  }, []);
-
   // Helper function to check if a bill is past due
   const isPastDue = (bill: Bill): boolean => {
     if (bill.isPaid) return false;
@@ -169,44 +147,10 @@ export default function DashboardScreen() {
     return true;
   };
 
-  // Helper function to check if a bill is due in early next month (first 7 days)
-  const isEarlyNextMonth = (bill: Bill): boolean => {
-    if (bill.isPaid) return false;
-
-    const today = new Date();
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth() + 1;
-
-    // Only show early next month bills if we're past day 21 of current month
-    if (currentDay < 21) return false;
-
-    const nextMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-
-    if (bill.recurrence === "monthly" && bill.recurringDayOfMonth != null) {
-      // Show if bill is due in first 7 days of the month
-      return bill.recurringDayOfMonth <= 7;
-    }
-
-    if (
-      bill.recurrence === "yearly" &&
-      bill.yearlyDueMonth != null &&
-      bill.yearlyDueDay != null
-    ) {
-      // Show if due in next month within first 7 days
-      return bill.yearlyDueMonth === nextMonth && bill.yearlyDueDay <= 7;
-    }
-
-    return false;
-  };
-
   // Filter bills into past due and upcoming
   const pastDueBills = bills.filter(isPastDue);
   const upcomingThisMonthBills = bills.filter(
     (bill) => !isPastDue(bill) && isUpcomingThisMonth(bill),
-  );
-  const upcomingNextMonthBills = bills.filter(
-    (bill) =>
-      !isPastDue(bill) && !isUpcomingThisMonth(bill) && isEarlyNextMonth(bill),
   );
 
   if (loading) {
@@ -288,22 +232,9 @@ export default function DashboardScreen() {
           </>
         )}
 
-        {/* Upcoming Bills - Next Month (First Week) */}
-        {upcomingNextMonthBills.length > 0 && (
-          <>
-            <Text style={styles.sectionTitle}>
-              {nextMonthYear} ({upcomingNextMonthBills.length})
-            </Text>
-            {upcomingNextMonthBills.map((bill) => (
-              <BillCard key={bill._id} bill={bill} />
-            ))}
-          </>
+        {upcomingThisMonthBills.length === 0 && (
+          <Text style={styles.emptyText}>No upcoming bills this month.</Text>
         )}
-
-        {upcomingThisMonthBills.length === 0 &&
-          upcomingNextMonthBills.length === 0 && (
-            <Text style={styles.emptyText}>No upcoming bills.</Text>
-          )}
 
         {/* Bills Paid */}
         {bills.length !== 0 && (
