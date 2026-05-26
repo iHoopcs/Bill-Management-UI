@@ -36,6 +36,7 @@ export default function BillDetailScreen() {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [togglingPaid, setTogglingPaid] = useState(false);
 
   // Editable fields
   const [name, setName] = useState("");
@@ -192,6 +193,40 @@ export default function BillDetailScreen() {
     setIsEditing(false);
   };
 
+  const handleTogglePaid = async (newValue: boolean) => {
+    setTogglingPaid(true);
+    try {
+      // Determine paidDate
+      let paidDateValue: string | null = null;
+      if (newValue) {
+        // Marking as paid now
+        paidDateValue = new Date().toISOString();
+      }
+
+      const payload: UpdateBillDto = {
+        name: bill!.name,
+        amount: bill!.amount,
+        isPaid: newValue,
+        paidDate: paidDateValue,
+        recurrence: bill!.recurrence ?? null,
+        recurringDayOfMonth: bill!.recurringDayOfMonth ?? null,
+        yearlyDueMonth: bill!.yearlyDueMonth ?? null,
+        yearlyDueDay: bill!.yearlyDueDay ?? null,
+        reminderDays: bill!.reminderDays ?? 3,
+        notes: bill!.notes ?? null,
+      };
+      const updated = await billService.updateBill(id!, payload);
+      setBill(updated);
+      populateFields(updated);
+    } catch (err: any) {
+      Alert.alert("Error", err.message ?? "Failed to update paid status.");
+      // Revert the toggle
+      setIsPaid(bill!.isPaid);
+    } finally {
+      setTogglingPaid(false);
+    }
+  };
+
   if (loading) {
     return (
       <SafeAreaView style={styles.centeredContainer}>
@@ -291,19 +326,28 @@ export default function BillDetailScreen() {
           />
           <Divider />
 
-          {/* Paid toggle */}
+          {/* Paid toggle - Always interactive for quick access */}
           <View style={styles.fieldRow}>
             <Text style={styles.fieldLabel}>Paid</Text>
-            {isEditing ? (
+            <View style={styles.paidToggleContainer}>
+              {togglingPaid && (
+                <ActivityIndicator
+                  size="small"
+                  color="#007bff"
+                  style={styles.toggleSpinner}
+                />
+              )}
               <Switch
                 value={isPaid}
-                onValueChange={setIsPaid}
-                trackColor={{ true: "#007bff", false: "#ddd" }}
+                onValueChange={(value) => {
+                  setIsPaid(value);
+                  handleTogglePaid(value);
+                }}
+                trackColor={{ true: "#28a745", false: "#ddd" }}
                 thumbColor="#fff"
+                disabled={togglingPaid}
               />
-            ) : (
-              <Text style={styles.fieldValue}>{isPaid ? "Yes" : "No"}</Text>
-            )}
+            </View>
           </View>
           <Divider />
 
@@ -428,38 +472,40 @@ export default function BillDetailScreen() {
 
         {/* Action buttons */}
         {isEditing && (
-          <Pressable
-            style={({ pressed }) => [
-              styles.saveButton,
-              (saving || deleting) && styles.disabledButton,
-              pressed && styles.pressed,
-            ]}
-            onPress={handleSave}
-            disabled={saving || deleting}
-          >
-            {saving ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.saveText}>Save Changes</Text>
-            )}
-          </Pressable>
-        )}
+          <>
+            <Pressable
+              style={({ pressed }) => [
+                styles.saveButton,
+                (saving || deleting) && styles.disabledButton,
+                pressed && styles.pressed,
+              ]}
+              onPress={handleSave}
+              disabled={saving || deleting}
+            >
+              {saving ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.saveText}>Save Changes</Text>
+              )}
+            </Pressable>
 
-        <Pressable
-          style={({ pressed }) => [
-            styles.deleteButton,
-            (saving || deleting) && styles.disabledButton,
-            pressed && styles.pressed,
-          ]}
-          onPress={handleDelete}
-          disabled={saving || deleting}
-        >
-          {deleting ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.deleteText}>Delete Bill</Text>
-          )}
-        </Pressable>
+            <Pressable
+              style={({ pressed }) => [
+                styles.deleteButton,
+                (saving || deleting) && styles.disabledButton,
+                pressed && styles.pressed,
+              ]}
+              onPress={handleDelete}
+              disabled={saving || deleting}
+            >
+              {deleting ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.deleteText}>Delete Bill</Text>
+              )}
+            </Pressable>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -635,6 +681,16 @@ const styles = StyleSheet.create({
   },
   recurrenceChipText: { fontSize: 12, color: "#555" },
   recurrenceChipTextActive: { color: "#007bff", fontWeight: "600" },
+
+  // Paid toggle
+  paidToggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  toggleSpinner: {
+    marginRight: 4,
+  },
 
   // Meta
   metaCard: {

@@ -54,10 +54,6 @@ export default function DashboardScreen() {
     fetchData();
   };
 
-  const totalDue = bills
-    .filter((b) => !b.isPaid)
-    .reduce((sum, b) => sum + b.amount, 0);
-
   // Computed once on mount — no need to recalculate on every render
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -134,10 +130,30 @@ export default function DashboardScreen() {
     return true;
   };
 
-  // Filter bills into past due and upcoming
+  // Helper function to check if a bill was paid this month
+  const isPaidThisMonth = (bill: Bill): boolean => {
+    if (!bill.isPaid || !bill.paidDate) return false;
+
+    const paidDate = new Date(bill.paidDate);
+    const today = new Date();
+
+    return (
+      paidDate.getMonth() === today.getMonth() &&
+      paidDate.getFullYear() === today.getFullYear()
+    );
+  };
+
+  // Filter bills into past due, upcoming, and paid this month
   const pastDueBills = bills.filter(isPastDue);
   const upcomingThisMonthBills = bills.filter(
     (bill) => !isPastDue(bill) && isUpcomingThisMonth(bill),
+  );
+  const paidThisMonthBills = bills.filter(isPaidThisMonth);
+
+  // Calculate total outstanding balance for THIS month only
+  const totalDue = [...pastDueBills, ...upcomingThisMonthBills].reduce(
+    (sum, b) => sum + b.amount,
+    0,
   );
 
   if (loading) {
@@ -211,7 +227,8 @@ export default function DashboardScreen() {
         {upcomingThisMonthBills.length > 0 && (
           <>
             <Text style={styles.sectionTitle}>
-              {currentMonthYear} ({upcomingThisMonthBills.length})
+              Upcoming Bills - {currentMonthYear} (
+              {upcomingThisMonthBills.length})
             </Text>
             {upcomingThisMonthBills.map((bill) => (
               <BillCard key={bill._id} bill={bill} />
@@ -219,21 +236,23 @@ export default function DashboardScreen() {
           </>
         )}
 
-        {upcomingThisMonthBills.length === 0 && (
-          <Text style={styles.emptyText}>No upcoming bills this month.</Text>
-        )}
+        {upcomingThisMonthBills.length === 0 &&
+          pastDueBills.length === 0 &&
+          paidThisMonthBills.length === 0 && (
+            <Text style={styles.emptyText}>No bills for this month.</Text>
+          )}
 
-        {/* Bills Paid */}
-        {bills.length !== 0 && (
-          <Text style={styles.sectionTitle}>
-            Bills Paid ({bills.filter((bill) => bill.isPaid).length})
-          </Text>
+        {/* Bills Paid This Month */}
+        {paidThisMonthBills.length > 0 && (
+          <>
+            <Text style={[styles.sectionTitle, styles.billsPaidTitle]}>
+              Bills Paid This Month ({paidThisMonthBills.length})
+            </Text>
+            {paidThisMonthBills.map((bill) => (
+              <BillCard key={bill._id} bill={bill} />
+            ))}
+          </>
         )}
-        {bills
-          .filter((bill) => bill.isPaid)
-          .map((bill) => (
-            <BillCard key={bill._id} bill={bill} />
-          ))}
       </ScrollView>
 
       <BottomNav />
@@ -292,8 +311,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: "#111",
     marginTop: 4,
+  },
+  billsPaidTitle: {
+    color: "#28a745",
   },
   pastDueTitle: {
     color: "#d9534f",
