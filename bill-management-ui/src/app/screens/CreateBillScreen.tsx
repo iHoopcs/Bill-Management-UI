@@ -64,8 +64,12 @@ export default function CreateBillScreen() {
         recurrence: isRecurring ? recurrence : undefined,
       };
       await billService.createBill(payload);
-      // Navigate back to dashboard after creation
-      router.replace("/screens/DashboardScreen");
+      Alert.alert("Success", "Bill created.", [
+        {
+          text: "OK",
+          onPress: () => router.replace("/screens/DashboardScreen"),
+        },
+      ]);
     } catch (err: any) {
       Alert.alert("Error", err.message ?? "Failed to create bill.");
     } finally {

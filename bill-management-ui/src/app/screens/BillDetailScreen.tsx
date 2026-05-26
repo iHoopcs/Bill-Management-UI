@@ -97,6 +97,7 @@ export default function BillDetailScreen() {
       setBill(updated);
       populateFields(updated);
       setIsEditing(false);
+      Alert.alert("Success", "Bill updated.");
     } catch (err: any) {
       Alert.alert("Error", err.message ?? "Failed to save changes.");
     } finally {
@@ -117,7 +118,12 @@ export default function BillDetailScreen() {
             setDeleting(true);
             try {
               await billService.deleteBill(id!);
-              router.replace("/screens/DashboardScreen");
+              Alert.alert("Success", "Bill deleted.", [
+                {
+                  text: "OK",
+                  onPress: () => router.replace("/screens/DashboardScreen"),
+                },
+              ]);
             } catch (err: any) {
               Alert.alert("Error", err.message ?? "Failed to delete bill.");
               setDeleting(false);

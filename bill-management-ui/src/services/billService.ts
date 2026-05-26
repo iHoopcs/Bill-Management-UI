@@ -2,6 +2,8 @@ import apiClient from "@/config/apiClient";
 import { Bill, CreateBillDto, UpdateBillDto } from "@/models/bill";
 import { getUserIdFromToken, handleStatus } from "@/utils/serviceUtils";
 
+const billApiEndpoint: string = "/api/bills";
+
 export const billService = {
   /**
    * Retrieves the bill details for the specified bill ID.
@@ -10,7 +12,9 @@ export const billService = {
    * @throws Error if the bill ID is missing or if the retrieval fails due to permissions or if the bill is not found
    */
   getBill: async (billId: string): Promise<Bill> => {
-    const response = await apiClient.get(`/api/bills/individual/${billId}`);
+    const response = await apiClient.get(
+      `${billApiEndpoint}/individual/${billId}`,
+    );
 
     handleStatus(response, 200, {
       401: "Session expired. Please log in again.",
@@ -29,7 +33,7 @@ export const billService = {
   getBillsForUser: async (): Promise<Bill[]> => {
     const userId = await getUserIdFromToken();
     if (!userId) throw new Error("User ID is required to retrieve bills.");
-    const response = await apiClient.get(`/api/bills/all/${userId}/`);
+    const response = await apiClient.get(`${billApiEndpoint}/all/${userId}/`);
 
     handleStatus(response, 200, {
       401: "Session expired. Please log in again.",
@@ -53,7 +57,7 @@ export const billService = {
       );
 
     const userId = await getUserIdFromToken();
-    const response = await apiClient.post("/api/bills", {
+    const response = await apiClient.post(`${billApiEndpoint}/add`, {
       ...billData,
       user: userId,
     });
@@ -81,7 +85,10 @@ export const billService = {
     if (!billId) throw new Error("Bill ID is required to update a bill.");
     if (Object.keys(billData).length === 0)
       throw new Error("At least one field must be provided to update.");
-    const response = await apiClient.put(`/api/bills/${billId}`, billData);
+    const response = await apiClient.put(
+      `${billApiEndpoint}/update/${billId}`,
+      billData,
+    );
     console.log("updateBill response:", JSON.stringify(response, null, 2));
 
     handleStatus(response, 200, {
@@ -102,7 +109,9 @@ export const billService = {
    */
   deleteBill: async (billId: string): Promise<void> => {
     if (!billId) throw new Error("Bill ID is required to delete a bill.");
-    const response = await apiClient.delete(`/api/bills/${billId}`);
+    const response = await apiClient.delete(
+      `${billApiEndpoint}/delete/${billId}`,
+    );
 
     handleStatus(response, 204, {
       401: "Session expired. Please log in again.",
