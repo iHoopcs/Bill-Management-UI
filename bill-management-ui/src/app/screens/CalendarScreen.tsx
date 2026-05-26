@@ -6,24 +6,49 @@ import {
   View,
   Pressable,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomNav from "../_components/BottomNav";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MONTH_NAMES_FULL, DAYS_IN_MONTH } from "@/utils/monthsOfYear";
 import CalendarNumber from "../_components/CalendarNumber";
+import { Bill } from "@/models/bill";
+import { billService } from "@/services/billService";
 
 export default function CalendarScreen() {
+  const [bills, setBills] = useState<Bill[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const currentMonthIndex = new Date().getMonth();
   const [selectedMonthIndex, setSelectedMonthIndex] =
     useState(currentMonthIndex);
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
+  //Fetch bills for the month when the screen loads or when the month changes
+  const fetchBills = async () => {
+    try {
+      setError(null);
+      // Fetch bills for the user
+      const billsData = await billService.getBillsForUser();
+      setBills(billsData);
+    } catch (err: any) {
+      setError(err.message ?? "Failed to load bills.");
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Runs once when the screen mounts
+  useEffect(() => {
+    fetchBills();
+  }, []);
+
   const onRefresh = () => {
     setRefreshing(true);
-    // Send request for calendar data
-    setRefreshing(false);
+    fetchBills();
   };
 
   // Get the first day of the month (0 = Sunday, 6 = Saturday)
@@ -53,6 +78,35 @@ export default function CalendarScreen() {
 
   const calendarDays = generateCalendarDays();
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.centeredContainer}>
+        <ActivityIndicator size="large" color="#007bff" />
+        <Text style={styles.loadingText}>Loading your bills...</Text>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.centeredContainer}>
+        <Text style={styles.errorText}>{error}</Text>
+        <Pressable
+          style={({ pressed }) => [
+            styles.retryButton,
+            pressed && styles.pressed,
+          ]}
+          onPress={() => {
+            setLoading(true);
+            fetchBills();
+          }}
+        >
+          <Text style={styles.retryText}>Try Again</Text>
+        </Pressable>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ScrollView
@@ -62,10 +116,11 @@ export default function CalendarScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {/* Calendar Title with Month Dropdown */}
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Calendar</Text>
+        {/* Calendar Title */}
+        <Text style={styles.greeting}>Calendar</Text>
 
+        {/* Month Dropdown */}
+        <View style={styles.dropdownContainer}>
           <Pressable
             style={styles.dropdown}
             onPress={() => setDropdownVisible(true)}
@@ -135,13 +190,42 @@ export default function CalendarScreen() {
 
           {/* Calendar grid */}
           <View style={styles.monthGrid}>
-            {calendarDays.map((item) =>
-              item.day ? (
-                <CalendarNumber key={item.key} day={item.day} hasBill={false} />
-              ) : (
-                <View key={item.key} style={styles.emptyCell} />
-              ),
-            )}
+            {calendarDays.map((item) => {
+              // If it's an empty cell (for alignment), render an invisible placeholder
+              if (!item.day) {
+                return <View key={item.key} style={styles.emptyCell} />;
+              }
+
+              // Check if any bill is due on this specific day
+              const hasBill = bills.some((bill) => {
+                // Monthly bills - check if recurring day matches
+                if (
+                  bill.recurrence === "monthly" &&
+                  bill.recurringDayOfMonth === item.day
+                ) {
+                  return true;
+                }
+
+                // Yearly bills - check if it's due this month and this day
+                if (
+                  bill.recurrence === "yearly" &&
+                  bill.yearlyDueMonth === selectedMonthIndex + 1 && // months are 1-indexed in bill data
+                  bill.yearlyDueDay === item.day
+                ) {
+                  return true;
+                }
+
+                return false;
+              });
+
+              return (
+                <CalendarNumber
+                  key={item.key}
+                  day={item.day}
+                  hasBill={hasBill}
+                />
+              );
+            })}
           </View>
         </View>
       </ScrollView>
@@ -159,19 +243,21 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingHorizontal: 20,
     paddingBottom: 20,
-    gap: 12,
-  },
-  header: {
-    marginBottom: 20,
     alignItems: "center",
   },
   greeting: {
-    fontSize: 24,
+    fontSize: 28,
     fontWeight: "bold",
     color: "#333",
     textAlign: "center",
     fontFamily: "System",
-    marginBottom: 12,
+    marginBottom: 16,
+    width: "100%",
+  },
+  dropdownContainer: {
+    alignItems: "center",
+    marginBottom: 24,
+    width: "100%",
   },
   dropdown: {
     flexDirection: "row",
@@ -186,7 +272,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
-    minWidth: 200,
+    minWidth: 220,
     justifyContent: "space-between",
   },
   dropdownText: {
@@ -237,6 +323,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    width: "100%",
+    maxWidth: 400,
+    alignSelf: "center",
   },
   monthName: {
     fontSize: 20,
@@ -270,5 +359,38 @@ const styles = StyleSheet.create({
   emptyCell: {
     width: 45,
     height: 45,
+  },
+
+  // Loading / error states
+  centeredContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f0f2f5",
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: "#888",
+  },
+  errorText: {
+    fontSize: 14,
+    color: "#d9534f",
+    textAlign: "center",
+    paddingHorizontal: 32,
+  },
+  retryButton: {
+    backgroundColor: "#007bff",
+    paddingVertical: 10,
+    paddingHorizontal: 28,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: "#fff",
+    fontWeight: "600",
+    fontSize: 14,
+  },
+  pressed: {
+    opacity: 0.7,
   },
 });

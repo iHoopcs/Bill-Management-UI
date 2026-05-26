@@ -1,4 +1,4 @@
-import apiClient from "@/config/apiClient";
+  import apiClient from "@/config/apiClient";
 import { Bill, CreateBillDto, UpdateBillDto } from "@/models/bill";
 import { getUserIdFromToken, handleStatus } from "@/utils/serviceUtils";
 
