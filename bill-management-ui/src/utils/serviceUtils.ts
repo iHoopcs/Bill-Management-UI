@@ -13,7 +13,11 @@ export const handleStatus = (
   errorMap: Record<number, string>,
 ) => {
   if (response.status === successCode) return;
-  if (response.status !== 200 && response.status !== 201)
+  if (
+    response.status !== 200 &&
+    response.status !== 201 &&
+    response.status !== 204
+  )
     console.error(
       "Unexpected response status:",
       response.status,
