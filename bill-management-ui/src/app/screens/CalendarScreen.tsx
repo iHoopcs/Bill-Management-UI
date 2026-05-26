@@ -197,7 +197,7 @@ export default function CalendarScreen() {
               }
 
               // Check if any bill is due on this specific day
-              const hasBill = bills.some((bill) => {
+              const billsOnThisDay = bills.filter((bill) => {
                 // Monthly bills - check if recurring day matches
                 if (
                   bill.recurrence === "monthly" &&
@@ -218,11 +218,16 @@ export default function CalendarScreen() {
                 return false;
               });
 
+              const hasBill = billsOnThisDay.length > 0;
+              const allPaid =
+                hasBill && billsOnThisDay.every((bill) => bill.isPaid);
+
               return (
                 <CalendarNumber
                   key={item.key}
                   day={item.day}
                   hasBill={hasBill}
+                  isPaid={allPaid}
                 />
               );
             })}

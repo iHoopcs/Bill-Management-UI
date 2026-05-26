@@ -4,11 +4,20 @@ import React from "react";
 export default function CalendarNumber(props: {
   day: number;
   hasBill?: boolean;
+  isPaid?: boolean;
 }) {
   return (
-    <View style={[styles.dayCell, props.hasBill && styles.hasBill]}>
-      {props.hasBill ? (
-        <Text style={[styles.day, styles.hasBill]}>{props.day}</Text>
+    <View
+      style={[
+        styles.dayCell,
+        props.hasBill && !props.isPaid && styles.hasBill,
+        props.hasBill && props.isPaid && styles.billsPaid,
+      ]}
+    >
+      {props.hasBill && props.isPaid ? (
+        <Text style={[styles.day, styles.paidText]}>{props.day}</Text>
+      ) : props.hasBill ? (
+        <Text style={[styles.day, styles.unpaidText]}>{props.day}</Text>
       ) : (
         <Text style={styles.day}>{props.day}</Text>
       )}
@@ -33,9 +42,21 @@ const styles = StyleSheet.create({
   day: {
     fontSize: 14,
     color: "#333",
+    fontWeight: "200",
   },
+  // Highlight days with unpaid bills
   hasBill: {
-    backgroundColor: "#007bff",
+    backgroundColor: "#ffc107",
+  },
+  unpaidText: {
+    color: "#000",
+    fontWeight: "bold",
+  },
+  // Highlight day all bills are paid
+  billsPaid: {
+    backgroundColor: "#28a745",
+  },
+  paidText: {
     color: "#fff",
     fontWeight: "bold",
   },
