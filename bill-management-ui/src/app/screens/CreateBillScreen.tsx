@@ -18,24 +18,33 @@ import { router } from "expo-router";
 import { CreateBillDto, RecurrenceType } from "@/models/bill";
 import { billService } from "@/services/billService";
 
-const RECURRENCE_OPTIONS: RecurrenceType[] = [
-  "daily",
-  "weekly",
+const RECURRENCE_OPTIONS: (RecurrenceType | null)[] = [
+  null,
   "monthly",
   "yearly",
 ];
+const RECURRENCE_LABELS: Record<string, string> = {
+  none: "None",
+  monthly: "Monthly",
+  yearly: "Yearly",
+};
 
 export default function CreateBillScreen() {
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [dueDate, setDueDate] = useState(todayISO());
   const [isPaid, setIsPaid] = useState(false);
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrence, setRecurrence] = useState<RecurrenceType>("monthly");
+  const [recurrence, setRecurrence] = useState<RecurrenceType | null>(null);
+  // Monthly fields
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState("");
+  // Yearly fields
+  const [yearlyDueMonth, setYearlyDueMonth] = useState("");
+  const [yearlyDueDay, setYearlyDueDay] = useState("");
+  // Optional fields
+  const [reminderDays, setReminderDays] = useState("3");
+  const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   const handleCreate = async () => {
-    // Validation
     if (!name.trim()) {
       Alert.alert("Validation", "Please enter a bill name.");
       return;
@@ -45,12 +54,27 @@ export default function CreateBillScreen() {
       Alert.alert("Validation", "Please enter a valid positive amount.");
       return;
     }
-    if (!dueDate.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(dueDate)) {
-      Alert.alert(
-        "Validation",
-        "Please enter a due date in YYYY-MM-DD format.",
-      );
-      return;
+    if (recurrence === "monthly") {
+      const day = parseInt(recurringDayOfMonth);
+      if (!recurringDayOfMonth || isNaN(day) || day < 1 || day > 31) {
+        Alert.alert(
+          "Validation",
+          "Please enter a valid day of the month (1–31).",
+        );
+        return;
+      }
+    }
+    if (recurrence === "yearly") {
+      const month = parseInt(yearlyDueMonth);
+      const day = parseInt(yearlyDueDay);
+      if (!yearlyDueMonth || isNaN(month) || month < 1 || month > 12) {
+        Alert.alert("Validation", "Please enter a valid month (1–12).");
+        return;
+      }
+      if (!yearlyDueDay || isNaN(day) || day < 1 || day > 31) {
+        Alert.alert("Validation", "Please enter a valid day (1–31).");
+        return;
+      }
     }
 
     setSubmitting(true);
@@ -58,10 +82,15 @@ export default function CreateBillScreen() {
       const payload: CreateBillDto = {
         name: name.trim(),
         amount: parsedAmount,
-        dueDate,
         isPaid,
-        isRecurring,
-        recurrence: isRecurring ? recurrence : undefined,
+        recurrence: recurrence ?? null,
+        recurringDayOfMonth:
+          recurrence === "monthly" ? parseInt(recurringDayOfMonth) : null,
+        yearlyDueMonth:
+          recurrence === "yearly" ? parseInt(yearlyDueMonth) : null,
+        yearlyDueDay: recurrence === "yearly" ? parseInt(yearlyDueDay) : null,
+        reminderDays: parseInt(reminderDays) || 3,
+        notes: notes.trim() || null,
       };
       await billService.createBill(payload);
       Alert.alert("Success", "Bill created.", [
@@ -127,19 +156,6 @@ export default function CreateBillScreen() {
               />
             </View>
 
-            {/* Due Date */}
-            <View style={styles.formGroup}>
-              <Text style={styles.label}>Due Date *</Text>
-              <TextInput
-                style={styles.input}
-                value={dueDate}
-                onChangeText={setDueDate}
-                placeholder="YYYY-MM-DD"
-                placeholderTextColor="#bbb"
-                returnKeyType="done"
-              />
-            </View>
-
             {/* Mark as paid */}
             <View style={styles.toggleRow}>
               <View>
@@ -156,28 +172,15 @@ export default function CreateBillScreen() {
               />
             </View>
 
-            {/* Recurring */}
-            <View style={styles.toggleRow}>
-              <View>
-                <Text style={styles.label}>Recurring</Text>
-                <Text style={styles.toggleHint}>Repeats on a schedule</Text>
-              </View>
-              <Switch
-                value={isRecurring}
-                onValueChange={setIsRecurring}
-                trackColor={{ true: "#007bff", false: "#ddd" }}
-                thumbColor="#fff"
-              />
-            </View>
-
-            {/* Recurrence frequency */}
-            {isRecurring && (
-              <View style={styles.formGroup}>
-                <Text style={styles.label}>Frequency</Text>
-                <View style={styles.chipRow}>
-                  {RECURRENCE_OPTIONS.map((opt) => (
+            {/* Recurrence type */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Recurrence</Text>
+              <View style={styles.chipRow}>
+                {RECURRENCE_OPTIONS.map((opt) => {
+                  const key = opt ?? "none";
+                  return (
                     <Pressable
-                      key={opt}
+                      key={key}
                       style={[
                         styles.chip,
                         recurrence === opt && styles.chipActive,
@@ -190,13 +193,87 @@ export default function CreateBillScreen() {
                           recurrence === opt && styles.chipTextActive,
                         ]}
                       >
-                        {opt}
+                        {RECURRENCE_LABELS[key]}
                       </Text>
                     </Pressable>
-                  ))}
-                </View>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Monthly: day of month */}
+            {recurrence === "monthly" && (
+              <View style={styles.formGroup}>
+                <Text style={styles.label}>Day of Month (1–31) *</Text>
+                <TextInput
+                  style={styles.input}
+                  value={recurringDayOfMonth}
+                  onChangeText={setRecurringDayOfMonth}
+                  placeholder="e.g. 1"
+                  placeholderTextColor="#bbb"
+                  keyboardType="number-pad"
+                  returnKeyType="done"
+                />
               </View>
             )}
+
+            {/* Yearly: month + day */}
+            {recurrence === "yearly" && (
+              <>
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Month (1–12) *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={yearlyDueMonth}
+                    onChangeText={setYearlyDueMonth}
+                    placeholder="e.g. 3 for March"
+                    placeholderTextColor="#bbb"
+                    keyboardType="number-pad"
+                    returnKeyType="next"
+                  />
+                </View>
+                <View style={styles.formGroup}>
+                  <Text style={styles.label}>Day (1–31) *</Text>
+                  <TextInput
+                    style={styles.input}
+                    value={yearlyDueDay}
+                    onChangeText={setYearlyDueDay}
+                    placeholder="e.g. 15"
+                    placeholderTextColor="#bbb"
+                    keyboardType="number-pad"
+                    returnKeyType="done"
+                  />
+                </View>
+              </>
+            )}
+
+            {/* Reminder days */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Reminder (days before due)</Text>
+              <TextInput
+                style={styles.input}
+                value={reminderDays}
+                onChangeText={setReminderDays}
+                placeholder="3"
+                placeholderTextColor="#bbb"
+                keyboardType="number-pad"
+                returnKeyType="done"
+              />
+            </View>
+
+            {/* Notes */}
+            <View style={styles.formGroup}>
+              <Text style={styles.label}>Notes</Text>
+              <TextInput
+                style={[styles.input, styles.inputMultiline]}
+                value={notes}
+                onChangeText={setNotes}
+                placeholder="Optional notes..."
+                placeholderTextColor="#bbb"
+                multiline
+                returnKeyType="done"
+              />
+            </View>
           </View>
 
           {/* Submit button */}
@@ -219,11 +296,6 @@ export default function CreateBillScreen() {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-}
-
-// Returns today's date as YYYY-MM-DD
-function todayISO() {
-  return new Date().toISOString().split("T")[0];
 }
 
 const styles = StyleSheet.create({
@@ -270,6 +342,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#111",
     backgroundColor: "#fafafa",
+  },
+  inputMultiline: {
+    minHeight: 80,
+    textAlignVertical: "top",
   },
 
   toggleRow: {
