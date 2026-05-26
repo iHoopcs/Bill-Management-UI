@@ -11,6 +11,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import BottomNav from "../_components/BottomNav";
 import { useState } from "react";
 import { MONTH_NAMES_FULL, DAYS_IN_MONTH } from "@/utils/monthsOfYear";
+import CalendarNumber from "../_components/CalendarNumber";
 
 export default function CalendarScreen() {
   const [refreshing, setRefreshing] = useState(false);
@@ -24,6 +25,33 @@ export default function CalendarScreen() {
     // Send request for calendar data
     setRefreshing(false);
   };
+
+  // Get the first day of the month (0 = Sunday, 6 = Saturday)
+  const getFirstDayOfMonth = (year: number, month: number) => {
+    return new Date(year, month, 1).getDay();
+  };
+
+  // Generate calendar grid with empty cells for alignment
+  const generateCalendarDays = () => {
+    const year = new Date().getFullYear();
+    const firstDay = getFirstDayOfMonth(year, selectedMonthIndex);
+    const daysInMonth = DAYS_IN_MONTH[selectedMonthIndex];
+    const calendarDays = [];
+
+    // Add empty cells for days before month starts
+    for (let i = 0; i < firstDay; i++) {
+      calendarDays.push({ day: null, key: `empty-${i}` });
+    }
+
+    // Add actual days of the month
+    for (let day = 1; day <= daysInMonth; day++) {
+      calendarDays.push({ day, key: `day-${day}` });
+    }
+
+    return calendarDays;
+  };
+
+  const calendarDays = generateCalendarDays();
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -96,15 +124,24 @@ export default function CalendarScreen() {
             {MONTH_NAMES_FULL[selectedMonthIndex]}
           </Text>
 
-          <View style={styles.monthGrid}>
-            {Array.from(
-              { length: DAYS_IN_MONTH[selectedMonthIndex] },
-              (_, i) => i + 1,
-            ).map((day) => (
-              <View key={day} style={styles.dayCell}>
-                <Text style={styles.day}>{day}</Text>
+          {/* Day of week headers */}
+          <View style={styles.weekHeader}>
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              <View key={day} style={styles.dayHeader}>
+                <Text style={styles.dayHeaderText}>{day}</Text>
               </View>
             ))}
+          </View>
+
+          {/* Calendar grid */}
+          <View style={styles.monthGrid}>
+            {calendarDays.map((item) =>
+              item.day ? (
+                <CalendarNumber key={item.key} day={item.day} hasBill={false} />
+              ) : (
+                <View key={item.key} style={styles.emptyCell} />
+              ),
+            )}
           </View>
         </View>
       </ScrollView>
@@ -208,22 +245,30 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: "center",
   },
+  weekHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  dayHeader: {
+    width: 45,
+    alignItems: "center",
+  },
+  dayHeaderText: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#666",
+  },
   monthGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: 5,
   },
-  dayCell: {
-    width: "13%",
-    aspectRatio: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f8f9fa",
-    borderRadius: 6,
-  },
-  day: {
-    fontSize: 14,
-    color: "#333",
-    fontWeight: "600",
+  emptyCell: {
+    width: 45,
+    height: 45,
   },
 });
