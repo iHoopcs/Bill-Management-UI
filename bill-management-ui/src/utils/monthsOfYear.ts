@@ -28,5 +28,7 @@ export const MONTH_NAMES_ABBR = [
   "Dec",
 ];
 
+export const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+
 // Default export for backward compatibility
 export default MONTH_NAMES_FULL;
