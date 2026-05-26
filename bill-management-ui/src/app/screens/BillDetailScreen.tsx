@@ -16,12 +16,16 @@ import { router, useLocalSearchParams } from "expo-router";
 import { Bill, RecurrenceType, UpdateBillDto } from "@/models/bill";
 import { billService } from "@/services/billService";
 
-const RECURRENCE_OPTIONS: RecurrenceType[] = [
-  "daily",
-  "weekly",
+const RECURRENCE_OPTIONS: (RecurrenceType | null)[] = [
+  null,
   "monthly",
   "yearly",
 ];
+const RECURRENCE_LABELS: Record<string, string> = {
+  none: "None",
+  monthly: "Monthly",
+  yearly: "Yearly",
+};
 
 export default function BillDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -36,10 +40,13 @@ export default function BillDetailScreen() {
   // Editable fields
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
-  const [dueDate, setDueDate] = useState("");
   const [isPaid, setIsPaid] = useState(false);
-  const [isRecurring, setIsRecurring] = useState(false);
-  const [recurrence, setRecurrence] = useState<RecurrenceType>("monthly");
+  const [recurrence, setRecurrence] = useState<RecurrenceType | null>(null);
+  const [recurringDayOfMonth, setRecurringDayOfMonth] = useState("");
+  const [yearlyDueMonth, setYearlyDueMonth] = useState("");
+  const [yearlyDueDay, setYearlyDueDay] = useState("");
+  const [reminderDays, setReminderDays] = useState("3");
+  const [notes, setNotes] = useState("");
 
   useEffect(() => {
     if (!id) {
@@ -66,15 +73,18 @@ export default function BillDetailScreen() {
   const populateFields = (b: Bill) => {
     setName(b.name);
     setAmount(b.amount.toString());
-    setDueDate(b.dueDate.split("T")[0]); // keep YYYY-MM-DD only
     setIsPaid(b.isPaid);
-    setIsRecurring(b.isRecurring);
-    setRecurrence(b.recurrence ?? "monthly");
+    setRecurrence(b.recurrence ?? null);
+    setRecurringDayOfMonth(b.recurringDayOfMonth?.toString() ?? "");
+    setYearlyDueMonth(b.yearlyDueMonth?.toString() ?? "");
+    setYearlyDueDay(b.yearlyDueDay?.toString() ?? "");
+    setReminderDays(b.reminderDays?.toString() ?? "3");
+    setNotes(b.notes ?? "");
   };
 
   const handleSave = async () => {
-    if (!name.trim() || !amount.trim() || !dueDate.trim()) {
-      Alert.alert("Validation", "Name, amount, and due date are required.");
+    if (!name.trim() || !amount.trim()) {
+      Alert.alert("Validation", "Name and amount are required.");
       return;
     }
     const parsedAmount = parseFloat(amount);
@@ -82,16 +92,43 @@ export default function BillDetailScreen() {
       Alert.alert("Validation", "Amount must be a positive number.");
       return;
     }
+    if (recurrence === "monthly") {
+      const day = parseInt(recurringDayOfMonth);
+      if (!recurringDayOfMonth || isNaN(day) || day < 1 || day > 31) {
+        Alert.alert(
+          "Validation",
+          "Please enter a valid day of the month (1–31).",
+        );
+        return;
+      }
+    }
+    if (recurrence === "yearly") {
+      const month = parseInt(yearlyDueMonth);
+      const day = parseInt(yearlyDueDay);
+      if (!yearlyDueMonth || isNaN(month) || month < 1 || month > 12) {
+        Alert.alert("Validation", "Please enter a valid month (1–12).");
+        return;
+      }
+      if (!yearlyDueDay || isNaN(day) || day < 1 || day > 31) {
+        Alert.alert("Validation", "Please enter a valid day (1–31).");
+        return;
+      }
+    }
 
     setSaving(true);
     try {
       const payload: UpdateBillDto = {
         name: name.trim(),
         amount: parsedAmount,
-        dueDate,
         isPaid,
-        isRecurring,
-        recurrence: isRecurring ? recurrence : undefined,
+        recurrence: recurrence ?? null,
+        recurringDayOfMonth:
+          recurrence === "monthly" ? parseInt(recurringDayOfMonth) : null,
+        yearlyDueMonth:
+          recurrence === "yearly" ? parseInt(yearlyDueMonth) : null,
+        yearlyDueDay: recurrence === "yearly" ? parseInt(yearlyDueDay) : null,
+        reminderDays: parseInt(reminderDays) || 3,
+        notes: notes.trim() || null,
       };
       const updated = await billService.updateBill(id!, payload);
       setBill(updated);
@@ -211,7 +248,7 @@ export default function BillDetailScreen() {
               {bill?.isPaid ? "✓  Paid" : "⏰  Due"}
             </Text>
           </View>
-          {bill?.isRecurring && (
+          {bill?.recurrence && (
             <View style={styles.recurringBadge}>
               <Text style={styles.recurringText}>🔄 {bill.recurrence}</Text>
             </View>
@@ -237,14 +274,6 @@ export default function BillDetailScreen() {
             keyboardType="decimal-pad"
           />
           <Divider />
-          <Field
-            label="Due Date"
-            value={dueDate}
-            editable={isEditing}
-            onChangeText={setDueDate}
-            placeholder="YYYY-MM-DD"
-          />
-          <Divider />
 
           {/* Paid toggle */}
           <View style={styles.fieldRow}>
@@ -262,58 +291,98 @@ export default function BillDetailScreen() {
           </View>
           <Divider />
 
-          {/* Recurring toggle */}
+          {/* Recurrence type */}
           <View style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>Recurring</Text>
+            <Text style={styles.fieldLabel}>Recurrence</Text>
             {isEditing ? (
-              <Switch
-                value={isRecurring}
-                onValueChange={setIsRecurring}
-                trackColor={{ true: "#007bff", false: "#ddd" }}
-                thumbColor="#fff"
-              />
+              <View style={styles.recurrenceRow}>
+                {RECURRENCE_OPTIONS.map((opt) => {
+                  const key = opt ?? "none";
+                  return (
+                    <Pressable
+                      key={key}
+                      style={[
+                        styles.recurrenceChip,
+                        recurrence === opt && styles.recurrenceChipActive,
+                      ]}
+                      onPress={() => setRecurrence(opt)}
+                    >
+                      <Text
+                        style={[
+                          styles.recurrenceChipText,
+                          recurrence === opt && styles.recurrenceChipTextActive,
+                        ]}
+                      >
+                        {RECURRENCE_LABELS[key]}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
             ) : (
               <Text style={styles.fieldValue}>
-                {isRecurring ? "Yes" : "No"}
+                {RECURRENCE_LABELS[recurrence ?? "none"]}
               </Text>
             )}
           </View>
 
-          {/* Recurrence type – only visible when recurring */}
-          {isRecurring && (
+          {/* Monthly: day of month */}
+          {recurrence === "monthly" && (
             <>
               <Divider />
-              <View style={styles.fieldRow}>
-                <Text style={styles.fieldLabel}>Frequency</Text>
-                {isEditing ? (
-                  <View style={styles.recurrenceRow}>
-                    {RECURRENCE_OPTIONS.map((opt) => (
-                      <Pressable
-                        key={opt}
-                        style={[
-                          styles.recurrenceChip,
-                          recurrence === opt && styles.recurrenceChipActive,
-                        ]}
-                        onPress={() => setRecurrence(opt)}
-                      >
-                        <Text
-                          style={[
-                            styles.recurrenceChipText,
-                            recurrence === opt &&
-                              styles.recurrenceChipTextActive,
-                          ]}
-                        >
-                          {opt}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-                ) : (
-                  <Text style={styles.fieldValue}>{recurrence}</Text>
-                )}
-              </View>
+              <Field
+                label="Day of Month (1–31)"
+                value={recurringDayOfMonth}
+                editable={isEditing}
+                onChangeText={setRecurringDayOfMonth}
+                placeholder="e.g. 1"
+                keyboardType="number-pad"
+              />
             </>
           )}
+
+          {/* Yearly: month + day */}
+          {recurrence === "yearly" && (
+            <>
+              <Divider />
+              <Field
+                label="Month (1–12)"
+                value={yearlyDueMonth}
+                editable={isEditing}
+                onChangeText={setYearlyDueMonth}
+                placeholder="e.g. 3"
+                keyboardType="number-pad"
+              />
+              <Divider />
+              <Field
+                label="Day (1–31)"
+                value={yearlyDueDay}
+                editable={isEditing}
+                onChangeText={setYearlyDueDay}
+                placeholder="e.g. 15"
+                keyboardType="number-pad"
+              />
+            </>
+          )}
+
+          <Divider />
+          <Field
+            label="Reminder (days before)"
+            value={reminderDays}
+            editable={isEditing}
+            onChangeText={setReminderDays}
+            placeholder="3"
+            keyboardType="number-pad"
+          />
+          <Divider />
+          <Field
+            label="Notes"
+            value={notes}
+            editable={isEditing}
+            onChangeText={setNotes}
+            placeholder="Optional notes..."
+            multiline
+          />
         </View>
 
         {/* Meta info */}
@@ -376,27 +445,33 @@ function Field({
   onChangeText,
   placeholder,
   keyboardType,
+  multiline,
 }: {
   label: string;
   value: string;
   editable: boolean;
   onChangeText: (v: string) => void;
   placeholder?: string;
-  keyboardType?: "default" | "decimal-pad";
+  keyboardType?: "default" | "decimal-pad" | "number-pad";
+  multiline?: boolean;
 }) {
   return (
-    <View style={styles.fieldRow}>
+    <View style={[styles.fieldRow, multiline && { alignItems: "flex-start" }]}>
       <Text style={styles.fieldLabel}>{label}</Text>
       {editable ? (
         <TextInput
-          style={styles.fieldInput}
+          style={[
+            styles.fieldInput,
+            multiline && { minHeight: 60, textAlignVertical: "top" },
+          ]}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
           keyboardType={keyboardType ?? "default"}
+          multiline={multiline}
         />
       ) : (
-        <Text style={styles.fieldValue}>{value}</Text>
+        <Text style={styles.fieldValue}>{value || "—"}</Text>
       )}
     </View>
   );

@@ -51,10 +51,8 @@ export const billService = {
    * @throws Error if required fields are missing or if the creation fails due to validation or permissions
    */
   createBill: async (billData: CreateBillDto): Promise<Bill> => {
-    if (!billData.name || !billData.amount || !billData.dueDate)
-      throw new Error(
-        "Name, amount, and due date are required to create a bill.",
-      );
+    if (!billData.name || !billData.amount)
+      throw new Error("Name and amount are required to create a bill.");
 
     const userId = await getUserIdFromToken();
     const response = await apiClient.post(`${billApiEndpoint}/add`, {
