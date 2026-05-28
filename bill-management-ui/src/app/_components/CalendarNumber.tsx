@@ -1,27 +1,69 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import React from "react";
+import { Bill } from "@/models/bill";
+import { useState } from "react";
+import DayDetailsModal from "./DayDetailsModal";
 
 export default function CalendarNumber(props: {
   day: number;
   hasBill?: boolean;
   isPaid?: boolean;
+  billsOnThisDay?: Bill[];
+  selectedMonth: string;
 }) {
+  const [dayDetailsVisible, setDayDetailsVisible] = useState(false);
+
   return (
-    <View
-      style={[
-        styles.dayCell,
-        props.hasBill && !props.isPaid && styles.hasBill,
-        props.hasBill && props.isPaid && styles.billsPaid,
-      ]}
-    >
-      {props.hasBill && props.isPaid ? (
-        <Text style={[styles.day, styles.paidText]}>{props.day}</Text>
-      ) : props.hasBill ? (
-        <Text style={[styles.day, styles.unpaidText]}>{props.day}</Text>
+    <>
+      {/* // Onpress day --> open modal with bill details for that day */}
+
+      {props.hasBill ? (
+        // Days w/ bills are pressable to show details
+        <Pressable onPress={() => setDayDetailsVisible(true)}>
+          <View
+            style={[
+              styles.dayCell,
+              props.hasBill && !props.isPaid && styles.hasBill,
+              props.hasBill && props.isPaid && styles.billsPaid,
+            ]}
+          >
+            {props.hasBill && props.isPaid ? (
+              <Text style={[styles.day, styles.paidText]}>{props.day}</Text>
+            ) : props.hasBill ? (
+              <Text style={[styles.day, styles.unpaidText]}>{props.day}</Text>
+            ) : (
+              <Text style={styles.day}>{props.day}</Text>
+            )}
+          </View>
+        </Pressable>
       ) : (
-        <Text style={styles.day}>{props.day}</Text>
+        // Display normal day number if no bills
+        <View style={styles.dayCell}>
+          <Text style={styles.day}>{props.day}</Text>
+        </View>
       )}
-    </View>
+
+      {/* Modal for day details */}
+      <Modal
+        visible={dayDetailsVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDayDetailsVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setDayDetailsVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <DayDetailsModal
+              day={props.day}
+              billsOnThisDay={props.billsOnThisDay}
+              selectedMonth={props.selectedMonth}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+    </>
   );
 }
 
@@ -59,5 +101,20 @@ const styles = StyleSheet.create({
   paidText: {
     color: "#fff",
     fontWeight: "bold",
+  },
+
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    padding: 20,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    alignItems: "center",
   },
 });

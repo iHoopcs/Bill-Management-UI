@@ -20,6 +20,7 @@ export const authService = {
         email,
         password,
       });
+      console.log("Login response:", response);
 
       handleStatus(response, 201, {
         400: "Invalid login details. Please check your email and password.",
@@ -36,6 +37,7 @@ export const authService = {
       router.replace("/screens/DashboardScreen");
     } catch (error: any) {
       if (error.message && !error.isAxiosError) throw error;
+      console.error("Login error:", error);
       throw new Error("Something went wrong while trying to log in.");
     }
   },
@@ -66,6 +68,8 @@ export const authService = {
         password,
       });
 
+      console.log("Registration response:", response);
+
       handleStatus(response, 201, {
         400: "Invalid registration details. Please check your information.",
         409: "An account with this email already exists.",
@@ -83,6 +87,7 @@ export const authService = {
       if (error.message && !error.isAxiosError) {
         throw error;
       }
+      console.error("Registration error:", error);
       throw new Error("Something went wrong while trying to register.");
     }
   },

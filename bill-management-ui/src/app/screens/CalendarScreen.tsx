@@ -11,7 +11,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import BottomNav from "../_components/BottomNav";
 import { useEffect, useState } from "react";
-import { MONTH_NAMES_FULL, DAYS_IN_MONTH } from "@/utils/monthsOfYear";
+import { MONTH_NAMES_FULL, DAYS_IN_MONTH } from "@/utils/calendarUtils";
 import CalendarNumber from "../_components/CalendarNumber";
 import { Bill } from "@/models/bill";
 import { billService } from "@/services/billService";
@@ -259,6 +259,8 @@ export default function CalendarScreen() {
                   day={item.day}
                   hasBill={hasBill}
                   isPaid={allPaid}
+                  selectedMonth={MONTH_NAMES_FULL[selectedMonthIndex]}
+                  billsOnThisDay={billsOnThisDay}
                 />
               );
             })}

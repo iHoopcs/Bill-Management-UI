@@ -16,7 +16,7 @@ import { billService } from "@/services/billService";
 import { userService } from "@/services/userService";
 import BottomNav from "@/app/_components/BottomNav";
 import BillCard from "../_components/BillCard";
-import { MONTH_NAMES_FULL } from "@/utils/monthsOfYear";
+import { MONTH_NAMES_FULL } from "@/utils/calendarUtils";
 
 export default function DashboardScreen() {
   const [user, setUser] = useState<User | null>(null);
@@ -208,7 +208,13 @@ export default function DashboardScreen() {
           <Text style={styles.summaryLabel}>{currentMonthYear}</Text>
           <Text style={styles.summaryLabel}>Outstanding Balance</Text>
 
-          <Text style={styles.summaryAmount}>${totalDue.toFixed(2)}</Text>
+          <Text style={styles.summaryAmount}>
+            $
+            {totalDue.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Text>
         </View>
 
         {/* Past Due Bills Section */}

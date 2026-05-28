@@ -2,21 +2,11 @@ import { useRouter } from "expo-router";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { Bill } from "@/models/bill";
-import { MONTH_NAMES_ABBR, MONTH_NAMES_FULL } from "@/utils/monthsOfYear";
-
-function getOrdinalSuffix(day: number): string {
-  if (day > 3 && day < 21) return "th";
-  switch (day % 10) {
-    case 1:
-      return "st";
-    case 2:
-      return "nd";
-    case 3:
-      return "rd";
-    default:
-      return "th";
-  }
-}
+import {
+  getOrdinalSuffix,
+  MONTH_NAMES_ABBR,
+  MONTH_NAMES_FULL,
+} from "@/utils/calendarUtils";
 
 // For BillDetailScreen - shows recurrence pattern
 export function scheduleLabel(bill: Bill): string {
