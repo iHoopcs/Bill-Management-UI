@@ -208,7 +208,13 @@ export default function DashboardScreen() {
           <Text style={styles.summaryLabel}>{currentMonthYear}</Text>
           <Text style={styles.summaryLabel}>Outstanding Balance</Text>
 
-          <Text style={styles.summaryAmount}>${totalDue.toFixed(2)}</Text>
+          <Text style={styles.summaryAmount}>
+            $
+            {totalDue.toLocaleString("en-US", {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+          </Text>
         </View>
 
         {/* Past Due Bills Section */}
