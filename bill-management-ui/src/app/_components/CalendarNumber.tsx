@@ -2,12 +2,14 @@ import { Modal, Pressable, StyleSheet, Text, View } from "react-native";
 import React from "react";
 import { Bill } from "@/models/bill";
 import { useState } from "react";
+import DayDetailsModal from "./DayDetailsModal";
 
 export default function CalendarNumber(props: {
   day: number;
   hasBill?: boolean;
   isPaid?: boolean;
   billsOnThisDay?: Bill[];
+  selectedMonth: string;
 }) {
   const [dayDetailsVisible, setDayDetailsVisible] = useState(false);
 
@@ -16,6 +18,7 @@ export default function CalendarNumber(props: {
       {/* // Onpress day --> open modal with bill details for that day */}
 
       {props.hasBill ? (
+        // Days w/ bills are pressable to show details
         <Pressable onPress={() => setDayDetailsVisible(true)}>
           <View
             style={[
@@ -34,6 +37,7 @@ export default function CalendarNumber(props: {
           </View>
         </Pressable>
       ) : (
+        // Display normal day number if no bills
         <View style={styles.dayCell}>
           <Text style={styles.day}>{props.day}</Text>
         </View>
@@ -51,8 +55,11 @@ export default function CalendarNumber(props: {
           onPress={() => setDayDetailsVisible(false)}
         >
           <View style={styles.modalContent}>
-            <Text>Bill details for day {props.day}</Text>
-            {/* Render bill details here */}
+            <DayDetailsModal
+              day={props.day}
+              billsOnThisDay={props.billsOnThisDay}
+              selectedMonth={props.selectedMonth}
+            />
           </View>
         </Pressable>
       </Modal>

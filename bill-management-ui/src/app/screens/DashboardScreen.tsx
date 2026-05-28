@@ -16,7 +16,7 @@ import { billService } from "@/services/billService";
 import { userService } from "@/services/userService";
 import BottomNav from "@/app/_components/BottomNav";
 import BillCard from "../_components/BillCard";
-import { MONTH_NAMES_FULL } from "@/utils/monthsOfYear";
+import { MONTH_NAMES_FULL } from "@/utils/calendarUtils";
 
 export default function DashboardScreen() {
   const [user, setUser] = useState<User | null>(null);
