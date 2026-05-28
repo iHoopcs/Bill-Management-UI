@@ -260,6 +260,7 @@ export default function CalendarScreen() {
                   hasBill={hasBill}
                   isPaid={allPaid}
                   selectedMonth={MONTH_NAMES_FULL[selectedMonthIndex]}
+                  billsOnThisDay={billsOnThisDay}
                 />
               );
             })}
