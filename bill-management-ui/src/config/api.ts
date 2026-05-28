@@ -10,6 +10,6 @@
  *   - Android emulator → use http://10.0.2.2:8080  (emulator's alias for host machine)
  *   - iOS simulator    → localhost works fine       http://localhost:8080
  */
-const LOCAL_IP = "192.168.1.17"; // <-- change this to your IP
+const LOCAL_IP = "100.117.82.132"; // <-- change this to your IP
 
 export const API_BASE_URL = `http://${LOCAL_IP}:8080`;
