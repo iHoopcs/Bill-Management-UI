@@ -3,6 +3,7 @@ import React from "react";
 import { Bill } from "@/models/bill";
 import { useState } from "react";
 import DayDetailsModal from "./DayDetailsModal";
+import { isPastDue } from "@/utils/calendarUtils";
 
 export default function CalendarNumber(props: {
   day: number;
@@ -10,8 +11,14 @@ export default function CalendarNumber(props: {
   isPaid?: boolean;
   billsOnThisDay?: Bill[];
   selectedMonth: string;
+  selectedMonthIndex: number;
 }) {
   const [dayDetailsVisible, setDayDetailsVisible] = useState(false);
+  const currentYear = new Date().getFullYear();
+  const isDayPastDue =
+    props.billsOnThisDay?.some((bill) =>
+      isPastDue(bill, props.selectedMonthIndex, currentYear),
+    ) ?? false;
 
   return (
     <>
@@ -24,15 +31,18 @@ export default function CalendarNumber(props: {
             style={[
               styles.dayCell,
               props.hasBill && !props.isPaid && styles.hasBill,
+              props.hasBill && !props.isPaid && isDayPastDue && styles.pastDue,
               props.hasBill && props.isPaid && styles.billsPaid,
             ]}
           >
             {props.hasBill && props.isPaid ? (
               <Text style={[styles.day, styles.paidText]}>{props.day}</Text>
+            ) : isDayPastDue ? (
+              <Text style={[styles.day, styles.pastDueText]}>{props.day}</Text>
             ) : props.hasBill ? (
               <Text style={[styles.day, styles.unpaidText]}>{props.day}</Text>
             ) : (
-              <Text style={styles.day}>{props.day}</Text>
+              props.hasBill && <Text style={styles.day}>{props.day}</Text>
             )}
           </View>
         </Pressable>
@@ -59,6 +69,7 @@ export default function CalendarNumber(props: {
               day={props.day}
               billsOnThisDay={props.billsOnThisDay}
               selectedMonth={props.selectedMonth}
+              selectedMonthIndex={props.selectedMonthIndex}
             />
           </View>
         </Pressable>
@@ -92,6 +103,14 @@ const styles = StyleSheet.create({
   },
   unpaidText: {
     color: "#000",
+    fontWeight: "bold",
+  },
+  // Highlight days with past due bills
+  pastDue: {
+    backgroundColor: "#dc3545",
+  },
+  pastDueText: {
+    color: "#fff",
     fontWeight: "bold",
   },
   // Highlight day all bills are paid

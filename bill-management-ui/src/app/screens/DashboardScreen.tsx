@@ -16,7 +16,11 @@ import { billService } from "@/services/billService";
 import { userService } from "@/services/userService";
 import BottomNav from "@/app/_components/BottomNav";
 import BillCard from "../_components/BillCard";
-import { MONTH_NAMES_FULL } from "@/utils/calendarUtils";
+import {
+  MONTH_NAMES_FULL,
+  isPastDue,
+  isPaidThisMonth,
+} from "@/utils/calendarUtils";
 
 export default function DashboardScreen() {
   const [user, setUser] = useState<User | null>(null);
@@ -70,37 +74,6 @@ export default function DashboardScreen() {
     return `${MONTH_NAMES_FULL[now.getMonth()]} ${now.getFullYear()}`;
   }, []);
 
-  // Helper function to check if a bill is past due
-  const isPastDue = (bill: Bill): boolean => {
-    if (bill.isPaid) return false;
-
-    const today = new Date();
-    const currentDay = today.getDate();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-
-    if (bill.recurrence === "monthly" && bill.recurringDayOfMonth != null) {
-      // Past due if the recurring day has already passed this month
-      return currentDay > bill.recurringDayOfMonth;
-    }
-
-    if (
-      bill.recurrence === "yearly" &&
-      bill.yearlyDueMonth != null &&
-      bill.yearlyDueDay != null
-    ) {
-      // Past due if the month/day has already passed this year
-      if (currentMonth > bill.yearlyDueMonth) return true;
-      if (
-        currentMonth === bill.yearlyDueMonth &&
-        currentDay > bill.yearlyDueDay
-      )
-        return true;
-    }
-
-    return false;
-  };
-
   // Helper function to check if a bill is upcoming this month
   const isUpcomingThisMonth = (bill: Bill): boolean => {
     if (bill.isPaid) return false;
@@ -128,19 +101,6 @@ export default function DashboardScreen() {
 
     // One-time bills - show if not paid
     return true;
-  };
-
-  // Helper function to check if a bill was paid this month
-  const isPaidThisMonth = (bill: Bill): boolean => {
-    if (!bill.isPaid || !bill.paidDate) return false;
-
-    const paidDate = new Date(bill.paidDate);
-    const today = new Date();
-
-    return (
-      paidDate.getMonth() === today.getMonth() &&
-      paidDate.getFullYear() === today.getFullYear()
-    );
   };
 
   // Filter bills into past due, upcoming, and paid this month

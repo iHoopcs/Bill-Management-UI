@@ -1,11 +1,12 @@
 import { StyleSheet, Text, View } from "react-native";
 import React from "react";
-import { getOrdinalSuffix } from "@/utils/calendarUtils";
+import { getOrdinalSuffix, isPaidThisMonth } from "@/utils/calendarUtils";
 
 export default function DayDetailsModal(props: {
   day: number;
   billsOnThisDay?: any[]; // Replace with actual bill type
   selectedMonth?: string;
+  selectedMonthIndex?: number;
 }) {
   // Simple divider component for separating bill details
   function Divider() {
@@ -26,7 +27,11 @@ export default function DayDetailsModal(props: {
               <Text style={styles.billName}>{bill.name}</Text> -{" "}
               <Text style={styles.billAmount}>${bill.amount}</Text>
             </Text>
-            {bill.isPaid && <Text style={styles.checkmark}>✓</Text>}
+            {isPaidThisMonth(
+              bill,
+              props.selectedMonthIndex ?? new Date().getMonth(),
+              new Date().getFullYear(),
+            ) && <Text style={styles.checkmark}>✓</Text>}
           </View>
           {index < (props.billsOnThisDay?.length ?? 0) - 1 && <Divider />}
         </>
