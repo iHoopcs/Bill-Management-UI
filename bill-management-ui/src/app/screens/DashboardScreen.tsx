@@ -104,11 +104,17 @@ export default function DashboardScreen() {
   };
 
   // Filter bills into past due, upcoming, and paid this month
-  const pastDueBills = bills.filter(isPastDue);
-  const upcomingThisMonthBills = bills.filter(
-    (bill) => !isPastDue(bill) && isUpcomingThisMonth(bill),
+  const currentMonthIndex = new Date().getMonth();
+  const currentYear = new Date().getFullYear();
+  const pastDueBills = bills.filter((bill) =>
+    isPastDue(bill, currentMonthIndex, currentYear)
   );
-  const paidThisMonthBills = bills.filter(isPaidThisMonth);
+  const upcomingThisMonthBills = bills.filter(
+    (bill) => !isPastDue(bill, currentMonthIndex, currentYear) && isUpcomingThisMonth(bill),
+  );
+  const paidThisMonthBills = bills.filter((bill) =>
+    isPaidThisMonth(bill, currentMonthIndex, currentYear)
+  );
 
   // Calculate total outstanding balance for THIS month only
   const totalDue = [...pastDueBills, ...upcomingThisMonthBills].reduce(
